@@ -1,8 +1,34 @@
-from policy_data import policy_dict
+from sentence_transformers import SentenceTransformer
+import faiss
+import numpy as np
 
-def retrieve_policy(intent):
+from policy_data import policies
 
-    return policy_dict.get(
-        intent,
-        "This query is not covered under current ZENDS policies."
+embedding_model = SentenceTransformer(
+    "sentence-transformers/all-MiniLM-L6-v2"
+)
+
+policy_embeddings = embedding_model.encode(
+    policies
+)
+
+dimension = policy_embeddings.shape[1]
+
+index = faiss.IndexFlatL2(dimension)
+
+index.add(
+    np.array(policy_embeddings)
+)
+
+def retrieve_policy(query):
+
+    query_embedding = embedding_model.encode(
+        [query]
     )
+
+    D, I = index.search(
+        np.array(query_embedding),
+        k=1
+    )
+
+    return policies[I[0][0]]
